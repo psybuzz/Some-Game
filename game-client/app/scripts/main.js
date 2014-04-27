@@ -1,5 +1,5 @@
 /*global PIXI, requestAnimFrame*/
-/*global Key*/
+/*global Key, io, Player*/
 
 // app namespace
 var app = app || {};
@@ -11,15 +11,37 @@ requestAnimFrame(animate);
 // game setup
 function setup(){
 	// create an new instance of a pixi stage
-	var stage = new PIXI.Stage(0xFFFFaF);
+	// var stage = new PIXI.Stage(0xFFFFaF);
+	var stage = new PIXI.Stage(0x333333);		// stage color
 
 	// create a renderer instance.
 	var renderer = PIXI.autoDetectRenderer(window.innerWidth, window.innerHeight-4);
 
+
+	// make grid
+
+	var rowN = 50;
+	var colN = 100;
+	var gx, gy;
+	var grid = new PIXI.Graphics();
+	grid.lineStyle(2, 0x000000, 1);
+	for (var i=0; i<colN; i++){
+		for (var j=0; j<rowN; j++){
+			gx = i*100;
+			gy = j*100;
+			grid.moveTo(gx + 20, gy);
+			grid.lineTo(gx + 100 - 20, gy);
+			grid.moveTo(gx, gy + 20);
+			grid.lineTo(gx, gy + 100 - 20);
+		}
+	}
+	stage.addChild(grid);
+
+
+
+	// make player
 	var graphics = new PIXI.Graphics();
-	 
-	// begin a green fill..
-	graphics.beginFill(0xFF0000);
+	graphics.beginFill(0xFF0000);				// player color
 	 
 	// draw a triangle using lines
 	graphics.moveTo(10,10);
@@ -33,22 +55,32 @@ function setup(){
 
 	graphics.dx = 0;
 	graphics.dy = 0;
+
+	var hitC = new PIXI.Circle(100,100,50);
+	graphics.hitArea = hitC;
+	graphics.setInteractive(true);
+	graphics.click = function(data){
+		console.log('hit rect');
+	};
 	 
 	// add it the stage so we see it on our screens..
 	stage.addChild(graphics);
 
-	var graphics2 = new PIXI.Graphics();
+	// Make goal posts
+	var goalN = 20;
+	var goals = [];
+	for (i=0; i<goalN; i++){
+		var goal = new PIXI.Graphics();
 	 
-	// begin a green fill..
-	graphics2.beginFill(0x11000F);
-	 
-	graphics2.drawCircle(100,100,50);
+		goal.beginFill(0xa1000F);
+		goal.drawCircle(Math.random()*2000 - 1000,Math.random()*2000 - 1000,20);
+		goal.endFill();
+		 
+		stage.addChild(goal);
 
-	// end the fill
-	graphics2.endFill();
-	 
-	// add it the stage so we see it on our screens..
-	stage.addChild(graphics2);
+		goals.push(goal);
+	}
+	
 
 	// main scope where our player moves
 	var scope = {
@@ -67,9 +99,40 @@ function setup(){
 	app.renderer = renderer;
 	app.scope = scope;
 
+	app.goals = goals;
+	app.otherPlayers = app.otherPlayers || [];
 	app.objects = app.objects || [];
 	app.objects.push(graphics);
-	app.objects.push(graphics2);
+
+	// networking
+	app.online = (typeof io !== 'undefined');
+	if (app.online){
+		var socket = io.connect('http://localhost:8000/');
+		app.socket = socket;
+
+		// when receiving news
+	    socket.on('news', function (data) {
+			console.log(data);
+			// socket.emit('my other event', { my: 'data' });
+			if (data['created'] === true){
+				var newPlayer = new Player({ id: data.id, color: 0x009CF0 });
+				app.otherPlayers.push(newPlayer);
+			} else if (data['data']){
+				console.log(data['data']);
+				var otherData = data['data'];
+				for (var i = app.otherPlayers.length - 1; i >= 0; i--) {
+					var other = app.otherPlayers[i];
+					if (other.id === data.id){
+						other.position.x = otherData.x;
+						other.position.y = otherData.y;
+					}
+				}
+			}
+		});
+	} else {		// localstorage
+
+	}
+
 }
 
 
@@ -83,17 +146,22 @@ function animate() {
 		player.position.x += player.dx;
 		player.position.y += player.dy;
 
+		// send pos to server
+		if (app.online){
+			app.socket.emit('my other event', { x: player.position.x, y: player.position.y });
+		}
+
 		if (player.getBounds().x < app.scope.left){
-			app.stage.worldTransform.tx += 5;
+			app.stage.worldTransform.tx += 15;
 		}
 		if (player.getBounds().x > app.scope.right){
-			app.stage.worldTransform.tx -= 5;
+			app.stage.worldTransform.tx -= 15;
 		}
 		if (player.getBounds().y < app.scope.up){
-			app.stage.worldTransform.ty += 5;
+			app.stage.worldTransform.ty += 15;
 		}
 		if (player.getBounds().y > app.scope.down){
-			app.stage.worldTransform.ty -= 5;
+			app.stage.worldTransform.ty -= 15;
 		}
 	}
 

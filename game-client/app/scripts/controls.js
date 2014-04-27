@@ -34,8 +34,8 @@ var Key = {
 $('body').keydown(function(e){
 	Key.onKeyDown(e);
 	var player = app.objects[0];
-	var dx = 5;
-	var dy = 5;
+	var dx = 15;
+	var dy = 15;
 
 	if (e.keyCode === 37){				// LEFT
 		player.dx = -dx;
