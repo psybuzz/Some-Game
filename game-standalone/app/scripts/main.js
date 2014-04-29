@@ -107,9 +107,14 @@ function setup(){
 	// networking
 	app.online = (typeof io !== 'undefined');
 	if (app.online){
-		// var socket = io.connect('http://somegameserver.herokuapp.com:8000/');
-		var socket = io.connect();
+		var socket = io.connect('http://localhost:8000/');		// local testing
+		// var socket = io.connect();							// deployment
 		app.socket = socket;
+
+		// first time
+		socket.on('hello', function (data){
+			app.socketId = data['id'];
+		});
 
 		// when receiving news
 	    socket.on('news', function (data) {

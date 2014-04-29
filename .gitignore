@@ -2,8 +2,8 @@ node_modules
 dist
 .tmp
 .sass-cache
-game-client/app/bower_components
-game-client/test/bower_components
+game-standalone/app/bower_components
+game-standalone/test/bower_components
 game.bowerrc
 .editorconfig
 .gitattributes
