@@ -4,6 +4,7 @@ dist
 .sass-cache
 game-standalone/app/bower_components
 game-standalone/test/bower_components
+game-standalone/app/bower_components/*
 game.bowerrc
 .editorconfig
 .gitattributes
